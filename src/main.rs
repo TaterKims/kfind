@@ -1,4 +1,6 @@
 use clap::Parser;
+use std::fs;
+
 
 //lets try using shit like bin search or bubble sorting
 #[derive(Parser, Debug)]
@@ -15,7 +17,7 @@ struct Args {
     dir: String,
 
     // Recursively search
-    #[arg(short, long, default_value_t = true, required = false)]
+    #[arg(short, long, default_value_t = false, required = false)]
     recursive: bool,
 
     // Extension, multiple can be supplied. Syntax for multiple [a, b, c]
@@ -31,6 +33,22 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    println!("Hello, world! {:?}", args.query);
+    if !args.recursive {
+        let dl = get_dir_list(&args.dir);
+        for f in dl {
+            println!("{}", f);
+        }
+    }
+    println!("Hello, world! {:?}", args.recursive);
+
+}
+
+fn get_dir_list(dir: &str) -> Vec<String> {
+    let paths = fs::read_dir(dir).unwrap();
+    let mut vec: Vec<String> = Vec::new();
+    for path in paths {
+        vec.push(path.unwrap().path().display().to_string());
+    }
+    vec
 
 }
