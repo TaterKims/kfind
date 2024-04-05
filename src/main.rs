@@ -2,6 +2,7 @@ use clap::Parser;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
+use regex::Regex;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -40,21 +41,24 @@ fn main() {
     let args = Args::parse();
     
     let start_point = &args.dir;
+    // *.txt = .*.txt
+    if args.query.contains("*") {
+        if let Some(star_index) = &args.query.find("*") {
+            let dot_insert = star_index - 1;
+            let reg_str = [&args.query[..dot_insert], ".", &args.query[dot_insert + 1..]].join("");
+            let reg = Regex::new(&reg_str).unwrap();
+        }
+    }
     let Ok(start_contents) = get_dir_list(&start_point) else { println!("Error getting directory contents"); return };
 
     for i in search_files_vector(&start_contents.1, &args.query) {
         println!("{}", i);
     }
-
 }
 
-fn match_query_against_file(query: &str, file_name: &str) -> bool {
-    if &file_name == &query {
-        return true;
-    }
-    false
+fn search_dir_and_subdirs(root_directory: &str, query: &str) {
+    
 }
-
 fn search_files_vector(file_list: &Vec<String>, query: &str) -> Vec<String> {
     let mut result: Vec<String> = Vec::new();
     for item in file_list {
@@ -96,9 +100,10 @@ fn get_dir_list(dir: &str) -> Result<(Vec<String>, Vec<String>), io::Error> {
         if path.is_dir() {
             vec_dirs.push(path.to_str().unwrap().to_string());
         } else {
-            if let Some(file_name) = path.file_name().and_then(|s| s.to_str()) {
-                vec_files.push(path.to_str().unwrap().to_string());
-            }
+            vec_files.push(path.to_str().unwrap().to_string());
+            //if let Some(file_name) = path.file_name().and_then(|s| s.to_str()) {
+            //    vec_files.push(path.to_str().unwrap().to_string());
+            //}
         }
     }
     vec_dirs.sort();
