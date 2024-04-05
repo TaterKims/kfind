@@ -10,13 +10,21 @@ struct Args {
     #[arg(short = 'q', long)]
     query: String,
 
-    // Where to search, will only search given dir if supplied and -r is not true
+    // Where to start search, will only search given dir if supplied and -r is not true
     #[arg(short = 'd', long, default_value_t = String::from("."), required = false)]
     dir: String,
 
     // Recursively search
     #[arg(short, long, default_value_t = false, required = false)]
     recursive: bool,
+
+    // Maximum depth to search subdirectories
+    #[arg(long, default_value_t = 0, required = false)]
+    depth: i32,
+
+    // Minimum depth to search subdirectories
+    #[arg(long, default_value_t = 0, required = false)]
+    mindepth: i32,
 
     // Extension, multiple can be supplied. Syntax for multiple [a, b, c]
     // example: -e [exe, jpg, png]
@@ -31,7 +39,7 @@ struct Args {
 fn main() {
     let args = Args::parse();
     
-    if !args.recursive {
+    if args.mindepth & args.depth == 0 {
         let current_dir = &args.dir;
         let current_dir_list = get_dir_list(current_dir);
         let results = search_current_dir(&args.query, &current_dir_list.1);
