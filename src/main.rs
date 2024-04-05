@@ -32,37 +32,24 @@ fn main() {
     let args = Args::parse();
     
     if !args.recursive {
-        let dl = get_dir_list(&args.dir).unwrap();
-        for item in dl {
-            println!("{}", &item);
-            //println!("Checking {} against {}", &args.query, pathbuf_filename(&item));
+        let current_dir = &args.dir;
+        let current_dir_list = get_dir_list(current_dir);
+        let results = search_current_dir(&args.query, &current_dir_list.1);
+        for line in results {
+            println!("Found match {}", &line);
         }
     }
 }
 
-fn find_query_in_vec(query: &str, target_vec: &Vec<PathBuf>) -> bool {
-    // only supply vector of files, no dirs
-    for item in target_vec {
-        let item_file_name = pathbuf_filename(&item);
-        println!("Checking {} against {}", &query, &item_file_name);
-        if item_file_name.contains(query) {
-            return true;
+fn search_current_dir(query: &str, dir_list: &Vec<String>) -> Vec<String> {
+    let mut result: Vec<String> = Vec::new();
+    for item in dir_list {
+        if item.contains(query) {
+            result.push(item.to_string());
         }
     }
-    false
+    result
 }
-
-//fn sort_dir_entires(dir_list: &Vec<PathBuf>) -> (Vec<PathBuf>, Vec<PathBuf>) {
-//    let mut vec_files: Vec<String> = Vec::new();
-//    let mut vec_dirs: Vec<String> = Vec::new();
-//
-//    for item in dir_list {
-//        if item.is_dir() {
-//            vec_dirs.push(&item.unwrap().to_str());
-//        }
-//    }
-//    (vec_dirs, vec_files)
-//}
 
 fn get_dir_list(dir: &str) -> (Vec<String>, Vec<String>) {
     //let paths = fs::read_dir(dir)?;
@@ -73,7 +60,10 @@ fn get_dir_list(dir: &str) -> (Vec<String>, Vec<String>) {
     for path in entries {
         let path = &path.unwrap().path();
         if path.is_dir() {
-            vec_dirs.push(path.to_str().unwrap().to_string());   
+            if let Some(dir_name) = path.file_name().and_then(|s| s.to_str()) {
+                println!("{}", &dir_name);
+                vec_dirs.push(dir_name.to_string());
+            }
         }  else {
             vec_files.push(path.to_str().unwrap().to_string());
         }
@@ -83,16 +73,6 @@ fn get_dir_list(dir: &str) -> (Vec<String>, Vec<String>) {
     (vec_dirs, vec_files)
 
 }
-
-fn pathbuf_filename(pathbuf: &PathBuf) -> String {
-    pathbuf
-        .file_name()
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_string()
-}
-
 
 fn output_result(result: &Vec<String>) {
     for line in result {
