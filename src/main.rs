@@ -1,7 +1,10 @@
 use clap::Parser;
 use std::fs;
 use std::io;
+use std::sync::mpsc;
 use std::path::PathBuf;
+use std::thread;
+use std::time::Duration;
 use regex::Regex;
 
 #[derive(Parser, Debug)]
@@ -40,16 +43,45 @@ struct Args {
 fn main() {
     let args = Args::parse();
     
-    let start_point = &args.dir;
+    let start_point = args.dir;
     // *.txt = .*.txt
     if args.query.contains("*") {
         let reg = make_regex(&args.query);
-        let output = search_dir_and_subdirs_regex(&start_point, &reg);
+        let (tx, rx) = mpsc::channel();
+        let working = vec!["\\", "|", "/", "-"];
+        let mut running = true;
+        
+        let handle = std::thread::spawn(move || {
+            println!("Searching {} with regex {}", start_point, reg.as_str());
+            tx.send(search_dir_and_subdirs_regex(&start_point, &reg)).unwrap();
+            thread::sleep(Duration::from_millis(1));
+        });
+
+        let mut counter: usize = 0;
+        while running {
+            if handle.is_finished() {
+                running = false;
+            }
+            println!("Searching, please wait... {}", counter);
+            counter += 1;
+            thread::sleep(Duration::from_secs(1));
+        }
+
+        let output = rx.recv().unwrap();
+        handle.join().unwrap();
         output_result(&output, &args.query);
+    
     } else {
         let output = search_dir_and_subdirs(&start_point, &args.query);
         output_result(&output, &args.query);
     }
+}
+
+fn display_working() {
+
+}
+fn get_file_name(path: &str) -> String {
+    PathBuf::from(path).file_name().unwrap().to_str().unwrap().to_string()
 }
 
 fn make_regex(query_string: &str) -> Regex {
@@ -66,7 +98,7 @@ fn make_regex(query_string: &str) -> Regex {
 }
 
 fn search_dir_and_subdirs_regex(search_dir: &str, reg: &regex::Regex) -> Vec<String> {
-    println!("Searching {} with regex {}", search_dir, reg.as_str());
+    //println!("Searching {} with regex {}", search_dir, reg.as_str());
     let mut search_results = Vec::new();
     let search_contents = get_dir_list(&search_dir).unwrap();
     
@@ -80,12 +112,8 @@ fn search_dir_and_subdirs_regex(search_dir: &str, reg: &regex::Regex) -> Vec<Str
     search_results
 }
 
-fn get_file_name(path: &str) -> String {
-    PathBuf::from(path).file_name().unwrap().to_str().unwrap().to_string()
-}
-
 fn search_dir_and_subdirs(search_dir: &str, query: &str) -> Vec<String> {
-    println!("Searching {} with query {}", search_dir, query);
+    //println!("Searching {} with query {}", search_dir, query);
     let mut search_results = Vec::new();
     let search_contents = get_dir_list(&search_dir).unwrap();
     
