@@ -45,29 +45,73 @@ fn main() {
     if args.query.contains("*") {
         if let Some(star_index) = &args.query.find("*") {
             let dot_insert = star_index - 1;
-            let reg_str = [&args.query[..dot_insert], ".", &args.query[dot_insert + 1..]].join("");
+        s    let reg_str = [&args.query[..dot_insert], ".", &args.query[dot_insert + 1..]].join("");
             let reg = Regex::new(&reg_str).unwrap();
+
+            let root_contents = get_dir_list(&start_point).unwrap();
+            let mut output = Vec::new();
+
+            for item in root_contents.1 {
+                let item_file_name = get_file_name(&item);
+                if reg.is_match(&item_file_name) {
+                    output.push(&item);
+                }
+            }
+            for dir in 0..root_contents.0 {
+                let dir_contents = get_dir_list(&root_contents.0[dir]).unwrap();
+                for item in dir_contents.1 {
+                    let item_file_name = get_file_name(&item);
+                    if reg.is_match(&item_file_name) {
+                        output.push(&item);
+                    }
+                }
+            }
         }
     }
-    let Ok(start_contents) = get_dir_list(&start_point) else { println!("Error getting directory contents"); return };
 
     for i in search_files_vector(&start_contents.1, &args.query) {
         println!("{}", i);
     }
 }
 
-fn search_dir_and_subdirs(root_directory: &str, query: &str) {
+fn get_file_name(path: &str) -> String {
+    PathBuf::from(path).file_name().unwrap().to_str().unwrap().to_string()
+}
+
+fn search_dir_and_subdirs(root_directory: &str, query: &str) -> Option<Vec<String>> {
+    let root_contents = get_dir_list(&query).unwrap();
+    let sub_directories = root_contents.0;
+    let output = Vec::new();
+
+    let current_dir_contents = search_files_vector(&root_contents.1, &query);
     
 }
-fn search_files_vector(file_list: &Vec<String>, query: &str) -> Vec<String> {
+
+fn search_single_directory(directory: &str, query: &str) {
+    let contents = get_dir_list(&directory).unwrap();
+    let files = contents.1;
     let mut result: Vec<String> = Vec::new();
-    for item in file_list {
+    for item in files {
         match item.as_str() {
             query => result.push(item.to_string()),
             _ => (),
         }
     }
-    result
+    output_result(&result);
+}
+
+fn search_files_vector(file_list: &Vec<String>, query: &str) -> Option<Vec<String>> {
+    let mut output = Vec::new();
+    for item in file_list {
+        let item_file_name = PathBuf::from(item).file_name().unwrap().to_str().unwrap();
+        if item_file_name.contains(query) {
+            output.push(item.to_string());
+        }
+    }
+    if output.is_empty() {
+        return None;
+    }
+    Some(output)
 }
 
 fn get_dir_list(dir: &str) -> Result<(Vec<String>, Vec<String>), io::Error> {
