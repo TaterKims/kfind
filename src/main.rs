@@ -18,10 +18,6 @@ struct Args {
     #[arg(short = 'd', long, default_value_t = String::from("."), required = false)]
     dir: String,
 
-    // Recursively search
-    #[arg(short, long, default_value_t = false, required = false)]
-    recursive: bool,
-
     // Maximum depth to search subdirectories
     #[arg(long, default_value_t = 0, required = false)]
     depth: i32,
